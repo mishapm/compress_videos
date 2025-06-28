@@ -3,6 +3,11 @@ import shutil
 import subprocess
 import ffmpeg
 
+# Настройки битрейтов (в Kbps)
+bitrate_video = 20_000  # 20 Mbps
+bitrate_audio = 192     # 192 Kbps
+max_bitrate_audio_for_copy = 225  # если выше — перекодировать
+
 def get_stream_info(video_path):
     try:
         probe = ffmpeg.probe(video_path)
@@ -31,7 +36,7 @@ def compress_video(input_path, output_path):
         return
 
     video_bitrate_kbps = get_bitrate_kbps(video_stream)
-    if 0 < video_bitrate_kbps < 15000:
+    if 0 < video_bitrate_kbps < bitrate_video:
         print(f'📋 Moving (bitrate {video_bitrate_kbps} Kbps): {os.path.basename(input_path)}')
         shutil.move(input_path, output_path)
         return
@@ -52,15 +57,15 @@ def compress_video(input_path, output_path):
     audio_bitrate = None
     if audio_stream:
         ab = get_bitrate_kbps(audio_stream)
-        if ab >= 194:
+        if ab >= max_bitrate_audio_for_copy:
             audio_codec = 'aac'
-            audio_bitrate = '194k'
+            audio_bitrate = f'{bitrate_audio}k'
 
     # Build ffmpeg command
     cmd = [
         'ffmpeg', '-i', input_path,
         '-c:v', 'libx264',
-        '-b:v', '15M',
+        '-b:v', f'{bitrate_video}k',
         '-r', str(fps)
     ]
     if audio_stream:
@@ -73,7 +78,7 @@ def compress_video(input_path, output_path):
     cmd += [
         '-progress', 'pipe:1',
         '-nostats',
-        '-loglevel', 'error',  # Only show errors in stderr
+        '-loglevel', 'error',
         '-y',
         output_path
     ]
@@ -86,7 +91,6 @@ def compress_video(input_path, output_path):
         last_percent = -1
         filename = os.path.basename(input_path)
         
-        # Read progress line by line
         for line in process.stdout:
             line = line.strip()
             if line.startswith("out_time_ms="):
@@ -96,7 +100,6 @@ def compress_video(input_path, output_path):
                     percent = min(int((current_seconds / duration) * 100), 100)
                     
                     if percent != last_percent and percent >= 0:
-                        # Create progress bar
                         bar_length = 30
                         filled = int((percent / 100) * bar_length)
                         bar = '█' * filled + '░' * (bar_length - filled)
@@ -107,26 +110,21 @@ def compress_video(input_path, output_path):
                 except (ValueError, ZeroDivisionError):
                     continue
             elif line.startswith("progress=end"):
-                # Compression finished
                 bar = '█' * 30
                 print(f'\r🛠️ {filename}: [{bar}] 100% ({duration:.1f}s/{duration:.1f}s)', 
                       end='', flush=True)
                 break
         
-        # Wait for process to finish
         return_code = process.wait()
         
         if return_code == 0:
             print(f'\n✅ Compressed: {filename}')
-            # Remove original file after successful compression
             os.remove(input_path)
         else:
-            # Get error output
             stderr_output = process.stderr.read()
             print(f'\n❌ FFmpeg failed: {filename}')
             if stderr_output:
                 print(f'Error details: {stderr_output}')
-            # Clean up failed output file
             if os.path.exists(output_path):
                 os.remove(output_path)
                 

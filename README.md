@@ -1,65 +1,82 @@
-# Video Compressor Script
+# 🎞️ BatchVideoCompressor
 
-This Python script automates video compression by analyzing and processing video and audio bitrates in a given folder. It is designed to reduce file sizes while maintaining quality thresholds.
+**BatchVideoCompressor** is a Python script for intelligently compressing video files in bulk. It analyzes the video and audio bitrate of each file, and decides whether to copy or re-encode them based on customizable thresholds. Designed for speed, quality, and ease of use.
 
-## Features
+---
 
-- Scans a specified folder for **video files only**.
-- **Skips** all non-video files.
-- **Moves videos** to a target folder if the video bitrate is **below 15 Mbps**.
-- **Audio processing**:
-  - If audio bitrate is **below 194 kbps**, it is copied without re-encoding (`-c:a copy`).
-  - If audio bitrate is **194 kbps or higher**, it is re-encoded to **194 kbps**.
-- **Video processing**:
-  - Re-encodes the video to **15 Mbps** using the **original frame rate** (FPS).
-- The output is saved to a `compressed` folder with the **same file name** as the original.
+## 🚀 Features
 
-## Requirements
+- 🔍 Automatically checks video/audio bitrate before compressing
+- 📦 Skips videos that are already below the threshold
+- ⚙️ Uses `ffmpeg` with progress bar and per-file feedback
+- 🔊 Converts high-bitrate audio streams to AAC
+- 🧹 Deletes original files after successful compression
+- 🗂️ Processes multiple video formats in a folder
 
-- [Python 3.x](https://www.python.org/)
-- [`ffmpeg`](https://ffmpeg.org/)
-- [`ffmpeg-python`](https://pypi.org/project/ffmpeg-python/)
+---
 
-## Installation
+## 📅 Requirements
 
-1. **Install ffmpeg-python**:
-   ```bash
-   pip install ffmpeg-python
-   ```
+- Python 3.7+
+- [ffmpeg](https://ffmpeg.org/) installed and accessible via command line
+- Python libraries:
+  ```bash
+  pip install ffmpeg-python
+  ```
 
-2. **Check if FFmpeg is installed**
+---
 
-   Open a Command Prompt and run:
+## ⚙️ Usage
 
-   ```bash
-   ffmpeg -version
-   ```
+1. Clone this repository
 
-   If the command is not recognized, you need to install FFmpeg.
-
-3. **Install FFmpeg (if not already installed)**
-
-   - Download FFmpeg from [https://www.gyan.dev/ffmpeg/builds/](https://www.gyan.dev/ffmpeg/builds/)
-   - Choose: **Release full build (ZIP)**
-   - Extract it to a folder (e.g., `C:\ffmpeg`)
-   - Ensure the path to the binary looks like: `C:\ffmpeg\bin\ffmpeg.exe`
-
-4. **Add FFmpeg to the PATH (Windows only)**
-
-   - Open: **Start Menu → Search “Environment Variables”**
-   - Under **System variables**, find `Path` → Click **Edit**
-   - Click **New** and paste the path:
-     ```
-     C:\ffmpeg\bin
-     ```
-   - Click **OK** on all dialogs.
-
-5. **Verify Installation**
-
-   Open a new Command Prompt window and run:
+2. Run the script:
 
    ```bash
-   ffmpeg -version
+   python compress_videos.py
    ```
 
-   If you see the version info — you're good to go ✅
+3. Enter the path to the folder with video files when prompted.
+
+4. The script will:
+
+   - Analyze each file
+   - Compress if needed
+   - Move it to a `compressed/` subfolder
+   - Show a live progress bar during each compression
+
+---
+
+## 🧠 Logic Overview
+
+- Videos with bitrate under **20 Mbps** are skipped (you can change this).
+- Audio with bitrate above **225 Kbps** is re-encoded to **AAC 192 Kbps**.
+- Supported formats: `.mp4`, `.mov`, `.m4v`, `.3gp`, `.avi`, `.mkv`, `.webm`
+
+You can easily tweak the settings at the top of the script:
+
+```python
+bitrate_video = 20  # Mbps threshold
+bitrate_audio = 192  # Audio bitrate for re-encoding (in kbps)
+max_bitrate_audio_for_copy = 225  # Max audio bitrate before re-encoding
+```
+
+---
+
+## 📂 Output
+
+Compressed videos are saved in a `compressed/` folder inside the original input folder.
+
+---
+
+## 📛 Notes
+
+- Original files are deleted after successful compression.\
+  If you want to keep originals, comment out this line:
+  ```python
+  os.remove(input_path)
+  ```
+
+---
+
+
